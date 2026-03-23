@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOTTO PRO</title>
+
+<style>
+body { font-family: Arial; margin:10px; background:#f5f5f5; }
+input, button { width:100%; padding:12px; font-size:16px; margin:5px 0; }
+.row { display:flex; gap:5px; }
+.tag { background:#4CAF50; color:white; padding:6px 10px; border-radius:15px; margin:3px; display:inline-block; }
+.tag span { margin-left:8px; cursor:pointer; }
+table { width:100%; border-collapse:collapse; margin-top:10px; background:white; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+</style>
+</head>
+
+<body>
+
+<h3>LOTTO PRO</h3>
+
+<input id="username" placeholder="ชื่อผู้คีย์">
+
+<div id="tags"></div>
+<input id="numbers" placeholder="พิมพ์เลข 3 ตัว">
+
+<div class="row">
+<input id="direct" type="number" placeholder="ตรง">
+<input id="tod" type="number" placeholder="โต๊ด">
+<input id="rev" type="number" placeholder="กลับ">
+</div>
+
+<button onclick="addItem()">เพิ่มรายการ</button>
+<button onclick="clearTags()">ล้างเลขที่คีย์</button>
+
+<h4>ประวัติ</h4>
+<table id="table">
+<tr><th>#</th><th>เลือก</th><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>คนคีย์</th></tr>
+</table>
+
+<button onclick="deleteHistory()">ลบที่เลือก</button>
+
+<button onclick="summary()">สรุปยอด</button>
+<button onclick="summaryByNumber()">สรุปตามเลข</button>
+
+<script>
+
+// 🔥 format เงิน
+function formatMoney(num) {
+  return Number(num).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+let tags=[];
+let data=[];
+
+// โหลดข้อมูล
+window.onload = function() {
+  let saved = localStorage.getItem("lottoData");
+  if(saved){
+    data = JSON.parse(saved);
+    render();
+  }
+
+  let user = localStorage.getItem("user");
+  if(user){
+    document.getElementById("username").value = user;
+  }
+};
+
+// USER
+document.getElementById("username").onchange=function(){
+ if(!this.value) return alert("กรอกชื่อ");
+ localStorage.setItem("user",this.value);
+}
+
+// TAG INPUT
+document.getElementById("numbers").addEventListener("input",function(){
+ let v=this.value.replace(/\D/g,"");
+ if(v.length==3){
+   addTag(v);
+   this.value="";
+ }
+});
+
+function addTag(n){
+ tags.push(n);
+ let t=document.createElement("span");
+ t.className="tag";
+ t.innerHTML=n+" <span onclick='removeTag(this)'>❌</span>";
+ document.getElementById("tags").appendChild(t);
+}
+
+function removeTag(el){
+ let val=el.parentElement.innerText.replace(" ❌","");
+ tags=tags.filter(x=>x!=val);
+ el.parentElement.remove();
+}
+
+function clearTags(){
+ tags=[];
+ document.getElementById("tags").innerHTML="";
+}
+
+// PERMUTATION
+function perm(s){
+ if(s.length<=1) return [s];
+ let r=[];
+ for(let i=0;i<s.length;i++){
+  let rest=s.slice(0,i)+s.slice(i+1);
+  perm(rest).forEach(p=>r.push(s[i]+p));
+ }
+ return [...new Set(r)];
+}
+
+function addItem(){
+ let u=localStorage.getItem("user");
+ if(!u) return alert("กรอกชื่อก่อน");
+
+ let d=+direct.value||0;
+ let t=+tod.value||0;
+ let r=+rev.value||0;
+
+ let sendData = []; // 🔥 เก็บข้อมูลที่จะส่งไป Sheets
+
+ tags.forEach(num=>{
+
+  if(d||t){
+   let item = {num,d,t,user:u};
+   data.unshift(item);
+   sendData.push(item); // 👉 เพิ่มตรงนี้
+  }
+
+  if(r){
+   let p=perm(num);
+   let base=Math.floor(r/p.length);
+   let rem=r%p.length;
+
+   p.forEach((x,i)=>{
+    let amt=base+(i<rem?1:0);
+
+    let item = {num:x,d:amt,t:0,user:u};
+    data.unshift(item);
+    sendData.push(item); // 👉 เพิ่มตรงนี้
+   });
+  }
+
+ });
+
+ render();
+
+ // 🔥 ส่งไป Google Sheets
+ fetch(https://script.google.com/macros/s/AKfycbzAPe7tqtWzltfiD_GeCvsu8OJ2RRZ5LuNlvw0VMXIa0_fUx2AdUAEBB4UrbSrZ4n-Ccg/exec, {
+   method: "POST",
+   body: JSON.stringify(sendData)
+ });
+
+ // reset
+ tags=[];
+ document.getElementById("tags").innerHTML="";
+ direct.value="";
+ tod.value="";
+ rev.value="";
+ document.getElementById("numbers").focus();
+
+ // save local
+ localStorage.setItem("lottoData", JSON.stringify(data));
+}
+// TABLE
+function render(){
+ let tb=document.getElementById("table");
+ tb.innerHTML="<tr><th>#</th><th>เลือก</th><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>คนคีย์</th></tr>";
+
+ data.forEach((x,i)=>{
+  let r=tb.insertRow();
+  r.insertCell(0).innerText=i+1;
+  r.insertCell(1).innerHTML='<input type="checkbox">';
+  r.insertCell(2).innerText=x.num;
+  r.insertCell(3).innerText=x.d||"-";
+  r.insertCell(4).innerText=x.t||"-";
+  r.insertCell(5).innerText=x.u;
+ });
+}
+
+// DELETE HISTORY
+function deleteHistory(){
+ let tb=document.getElementById("table");
+ let newData=[];
+ for(let i=1;i<tb.rows.length;i++){
+  let chk=tb.rows[i].cells[1].children[0].checked;
+  if(!chk) newData.push(data[i-1]);
+ }
+ data=newData;
+ render();
+ localStorage.setItem("lottoData", JSON.stringify(data));
+}
+
+// SUMMARY TOTAL
+function summary(){
+ let d=0,t=0;
+ data.forEach(x=>{ d+=x.d||0; t+=x.t||0; });
+
+ alert(
+ `ตรง ${formatMoney(d)}\n`+
+ `โต๊ด ${formatMoney(t)}\n`+
+ `รวม ${formatMoney(d+t)}`
+ );
+}
+
+// SUMMARY TABLE
+function summaryByNumber(){
+
+ let map={};
+
+ data.forEach(x=>{
+  if(!map[x.num]) map[x.num]={d:0,t:0};
+  map[x.num].d+=x.d||0;
+  map[x.num].t+=x.t||0;
+ });
+
+ let html=`
+ <html><head>
+ <style>
+ body{font-family:Arial;padding:10px;}
+ table{width:100%;border-collapse:collapse;}
+ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
+ th{background:#eee;}
+ </style>
+ </head><body>
+
+ <h3>สรุปตามเลข</h3>
+ <table>
+ <tr><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>รวมเงิน</th></tr>
+ `;
+
+ for(let k in map){
+
+  let d=map[k].d;
+  let t=map[k].t;
+  let total=(d*950)+(t*158);
+
+  if(total<=200000){
+    html+=`
+    <tr>
+      <td>${k}</td>
+      <td>${d}</td>
+      <td>${t}</td>
+      <td>${formatMoney(total)}</td>
+    </tr>`;
+  }else{
+    let d1=Math.floor(d/2), t1=Math.floor(t/2);
+    let d2=d-d1, t2=t-t1;
+
+    html+=`
+    <tr><td>${k}</td><td>${d1}</td><td>${t1}</td><td>${formatMoney((d1*950)+(t1*158))}</td></tr>
+    <tr><td>${k}</td><td>${d2}</td><td>${t2}</td><td>${formatMoney((d2*950)+(t2*158))}</td></tr>`;
+  }
+ }
+
+ html+=`</table></body></html>`;
+
+ let win=window.open();
+ win.document.write(html);
+ win.document.close();
+}
+
+</script>
+
+</body>
+</html>	
