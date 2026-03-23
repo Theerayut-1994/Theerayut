@@ -25,9 +25,8 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 <input id="numbers" inputmode="numeric" placeholder="พิมพ์เลข 3 ตัว">
 
 <div class="row">
-<input id="direct" inputmode="numeric" placeholder="ตรง">
+<input id="direct" inputmode="numeric" placeholder="บน">
 <input id="tod" inputmode="numeric" placeholder="โต๊ด">
-<input id="rev" inputmode="numeric" placeholder="กลับ">
 </div>
 
 <button onclick="addItem()">เพิ่มรายการ</button>
@@ -35,30 +34,29 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 
 <h4>ประวัติ</h4>
 <table id="table">
-<tr><th>#</th><th>เลือก</th><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>คนคีย์</th></tr>
+<tr><th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th></tr>
 </table>
-
-<button onclick="deleteHistory()">ลบที่เลือก</button>
 
 <script>
 
-function formatMoney(num) {
-  return Number(num || 0).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
+const API_URL = "https://script.google.com/macros/s/AKfycbwUaaLen3MSflYE0x5bMVYdcaibezNY5vEvPd8hXkNIgD8jHNneJCpOWIsze3TZKrkNNw/exec";
 
 let tags=[];
 let data=[];
 
-// โหลด
-window.onload = function() {
-  let saved = localStorage.getItem("lottoData");
-  if(saved){
-    data = JSON.parse(saved);
-    render();
-  }
+// โหลดข้อมูลจาก Google Sheets
+function loadData(){
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(res => {
+      data = res.reverse();
+      render();
+    });
+}
+
+// โหลดตอนเปิดเว็บ
+window.onload = function(){
+  loadData();
 
   let user = localStorage.getItem("user");
   if(user){
@@ -100,92 +98,54 @@ function clearTags(){
  document.getElementById("tags").innerHTML="";
 }
 
-// กลับเลข
-function perm(s){
- if(s.length<=1) return [s];
- let r=[];
- for(let i=0;i<s.length;i++){
-  let rest=s.slice(0,i)+s.slice(i+1);
-  perm(rest).forEach(p=>r.push(s[i]+p));
- }
- return [...new Set(r)];
-}
-
+// เพิ่มรายการ + ส่ง Google Sheets
 function addItem(){
  let u=localStorage.getItem("user");
  if(!u) return alert("กรอกชื่อก่อน");
 
  let d=+direct.value||0;
  let t=+tod.value||0;
- let r=+rev.value||0;
 
  let sendData=[];
 
  tags.forEach(num=>{
-
-  if(d||t){
-   let item = {num,d,t,user:u};
-   data.unshift(item);
+   let item = {
+     num: num,   // a
+     d: d,       // b
+     t: t,       // c
+     user: u
+   };
    sendData.push(item);
-  }
-
-  if(r){
-   let p=perm(num);
-   let base=Math.floor(r/p.length);
-   let rem=r%p.length;
-
-   p.forEach((x,i)=>{
-    let amt=base+(i<rem?1:0);
-    let item = {num:x,d:amt,t:0,user:u};
-    data.unshift(item);
-    sendData.push(item);
-   });
-  }
-
  });
 
- render();
-
- fetch("https://script.google.com/macros/s/AKfycbzAPe7tqtWzltfiD_GeCvsu8OJ2RRZ5LuNlvw0VMXIa0_fUx2AdUAEBB4UrbSrZ4n-Ccg/exec", {
+ fetch(API_URL, {
    method: "POST",
    body: JSON.stringify(sendData)
+ }).then(()=>{
+   loadData(); // โหลดใหม่
  });
 
+ // reset
  tags=[];
  document.getElementById("tags").innerHTML="";
  direct.value="";
  tod.value="";
- rev.value="";
  numbers.focus();
-
- localStorage.setItem("lottoData", JSON.stringify(data));
 }
 
+// แสดงตาราง
 function render(){
  let tb=document.getElementById("table");
- tb.innerHTML="<tr><th>#</th><th>เลือก</th><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>คนคีย์</th></tr>";
+ tb.innerHTML="<tr><th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th></tr>";
 
  data.forEach((x,i)=>{
   let r=tb.insertRow();
   r.insertCell(0).innerText=i+1;
-  r.insertCell(1).innerHTML='<input type="checkbox">';
-  r.insertCell(2).innerText=x.num;
-  r.insertCell(3).innerText=formatMoney(x.d);
-  r.insertCell(4).innerText=formatMoney(x.t);
-  r.insertCell(5).innerText=x.user;
+  r.insertCell(1).innerText=x.num;
+  r.insertCell(2).innerText=x.d;
+  r.insertCell(3).innerText=x.t;
+  r.insertCell(4).innerText=x.user;
  });
-}
-
-function deleteHistory(){
- let tb=document.getElementById("table");
- let newData=[];
- for(let i=1;i<tb.rows.length;i++){
-  let chk=tb.rows[i].cells[1].children[0].checked;
-  if(!chk) newData.push(data[i-1]);
- }
- data=newData;
- render();
- localStorage.setItem("lottoData", JSON.stringify(data));
 }
 
 </script>
