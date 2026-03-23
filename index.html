@@ -8,7 +8,7 @@
 body { font-family: Arial; margin:10px; background:#f5f5f5; }
 input, button { width:100%; padding:12px; font-size:16px; margin:5px 0; }
 .row { display:flex; gap:5px; }
-.tag { background:#4CAF50; color:white; padding:6px 10px; border-radius:15px; margin:3px; display:inline-block; }
+.tag { background:#4CAF50; color:white; padding:8px 12px; border-radius:20px; margin:3px; display:inline-block; }
 .tag span { margin-left:8px; cursor:pointer; }
 table { width:100%; border-collapse:collapse; margin-top:10px; background:white; }
 th, td { border:1px solid #ccc; padding:6px; text-align:center; }
@@ -22,16 +22,16 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 <input id="username" placeholder="ชื่อผู้คีย์">
 
 <div id="tags"></div>
-<input id="numbers" placeholder="พิมพ์เลข 3 ตัว">
+<input id="numbers" inputmode="numeric" placeholder="พิมพ์เลข 3 ตัว">
 
 <div class="row">
-<input id="direct" type="number" placeholder="ตรง">
-<input id="tod" type="number" placeholder="โต๊ด">
-<input id="rev" type="number" placeholder="กลับ">
+<input id="direct" inputmode="numeric" placeholder="ตรง">
+<input id="tod" inputmode="numeric" placeholder="โต๊ด">
+<input id="rev" inputmode="numeric" placeholder="กลับ">
 </div>
 
 <button onclick="addItem()">เพิ่มรายการ</button>
-<button onclick="clearTags()">ล้างเลขที่คีย์</button>
+<button onclick="clearTags()">ล้างเลข</button>
 
 <h4>ประวัติ</h4>
 <table id="table">
@@ -40,14 +40,10 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 
 <button onclick="deleteHistory()">ลบที่เลือก</button>
 
-<button onclick="summary()">สรุปยอด</button>
-<button onclick="summaryByNumber()">สรุปตามเลข</button>
-
 <script>
 
-// 🔥 format เงิน
 function formatMoney(num) {
-  return Number(num).toLocaleString('en-US', {
+  return Number(num || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
@@ -56,7 +52,7 @@ function formatMoney(num) {
 let tags=[];
 let data=[];
 
-// โหลดข้อมูล
+// โหลด
 window.onload = function() {
   let saved = localStorage.getItem("lottoData");
   if(saved){
@@ -71,15 +67,15 @@ window.onload = function() {
 };
 
 // USER
-document.getElementById("username").onchange=function(){
+username.onchange=function(){
  if(!this.value) return alert("กรอกชื่อ");
  localStorage.setItem("user",this.value);
 }
 
-// TAG INPUT
-document.getElementById("numbers").addEventListener("input",function(){
+// INPUT เลข 3 ตัว
+numbers.addEventListener("input",function(){
  let v=this.value.replace(/\D/g,"");
- if(v.length==3){
+ if(v.length===3){
    addTag(v);
    this.value="";
  }
@@ -104,7 +100,7 @@ function clearTags(){
  document.getElementById("tags").innerHTML="";
 }
 
-// PERMUTATION
+// กลับเลข
 function perm(s){
  if(s.length<=1) return [s];
  let r=[];
@@ -123,14 +119,14 @@ function addItem(){
  let t=+tod.value||0;
  let r=+rev.value||0;
 
- let sendData = []; // 🔥 เก็บข้อมูลที่จะส่งไป Sheets
+ let sendData=[];
 
  tags.forEach(num=>{
 
   if(d||t){
    let item = {num,d,t,user:u};
    data.unshift(item);
-   sendData.push(item); // 👉 เพิ่มตรงนี้
+   sendData.push(item);
   }
 
   if(r){
@@ -140,10 +136,9 @@ function addItem(){
 
    p.forEach((x,i)=>{
     let amt=base+(i<rem?1:0);
-
     let item = {num:x,d:amt,t:0,user:u};
     data.unshift(item);
-    sendData.push(item); // 👉 เพิ่มตรงนี้
+    sendData.push(item);
    });
   }
 
@@ -151,24 +146,21 @@ function addItem(){
 
  render();
 
- // 🔥 ส่งไป Google Sheets
- fetch(https://script.google.com/macros/s/AKfycbzAPe7tqtWzltfiD_GeCvsu8OJ2RRZ5LuNlvw0VMXIa0_fUx2AdUAEBB4UrbSrZ4n-Ccg/exec, {
+ fetch("https://script.google.com/macros/s/AKfycbzAPe7tqtWzltfiD_GeCvsu8OJ2RRZ5LuNlvw0VMXIa0_fUx2AdUAEBB4UrbSrZ4n-Ccg/exec", {
    method: "POST",
    body: JSON.stringify(sendData)
  });
 
- // reset
  tags=[];
  document.getElementById("tags").innerHTML="";
  direct.value="";
  tod.value="";
  rev.value="";
- document.getElementById("numbers").focus();
+ numbers.focus();
 
- // save local
  localStorage.setItem("lottoData", JSON.stringify(data));
 }
-// TABLE
+
 function render(){
  let tb=document.getElementById("table");
  tb.innerHTML="<tr><th>#</th><th>เลือก</th><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>คนคีย์</th></tr>";
@@ -178,13 +170,12 @@ function render(){
   r.insertCell(0).innerText=i+1;
   r.insertCell(1).innerHTML='<input type="checkbox">';
   r.insertCell(2).innerText=x.num;
-  r.insertCell(3).innerText=x.d||"-";
-  r.insertCell(4).innerText=x.t||"-";
-  r.insertCell(5).innerText=x.u;
+  r.insertCell(3).innerText=formatMoney(x.d);
+  r.insertCell(4).innerText=formatMoney(x.t);
+  r.insertCell(5).innerText=x.user;
  });
 }
 
-// DELETE HISTORY
 function deleteHistory(){
  let tb=document.getElementById("table");
  let newData=[];
@@ -197,76 +188,7 @@ function deleteHistory(){
  localStorage.setItem("lottoData", JSON.stringify(data));
 }
 
-// SUMMARY TOTAL
-function summary(){
- let d=0,t=0;
- data.forEach(x=>{ d+=x.d||0; t+=x.t||0; });
-
- alert(
- `ตรง ${formatMoney(d)}\n`+
- `โต๊ด ${formatMoney(t)}\n`+
- `รวม ${formatMoney(d+t)}`
- );
-}
-
-// SUMMARY TABLE
-function summaryByNumber(){
-
- let map={};
-
- data.forEach(x=>{
-  if(!map[x.num]) map[x.num]={d:0,t:0};
-  map[x.num].d+=x.d||0;
-  map[x.num].t+=x.t||0;
- });
-
- let html=`
- <html><head>
- <style>
- body{font-family:Arial;padding:10px;}
- table{width:100%;border-collapse:collapse;}
- th,td{border:1px solid #ccc;padding:8px;text-align:center;}
- th{background:#eee;}
- </style>
- </head><body>
-
- <h3>สรุปตามเลข</h3>
- <table>
- <tr><th>เลข</th><th>ตรง</th><th>โต๊ด</th><th>รวมเงิน</th></tr>
- `;
-
- for(let k in map){
-
-  let d=map[k].d;
-  let t=map[k].t;
-  let total=(d*950)+(t*158);
-
-  if(total<=200000){
-    html+=`
-    <tr>
-      <td>${k}</td>
-      <td>${d}</td>
-      <td>${t}</td>
-      <td>${formatMoney(total)}</td>
-    </tr>`;
-  }else{
-    let d1=Math.floor(d/2), t1=Math.floor(t/2);
-    let d2=d-d1, t2=t-t1;
-
-    html+=`
-    <tr><td>${k}</td><td>${d1}</td><td>${t1}</td><td>${formatMoney((d1*950)+(t1*158))}</td></tr>
-    <tr><td>${k}</td><td>${d2}</td><td>${t2}</td><td>${formatMoney((d2*950)+(t2*158))}</td></tr>`;
-  }
- }
-
- html+=`</table></body></html>`;
-
- let win=window.open();
- win.document.write(html);
- win.document.close();
-}
-
 </script>
 
 </body>
-</html>	
+</html>
