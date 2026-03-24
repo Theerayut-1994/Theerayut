@@ -61,7 +61,7 @@ function loadData(){
   fetch(API_URL)
     .then(res => res.json())
     .then(res => {
-      data = res.reverse(); // ใหม่ขึ้นก่อน
+      data = res; // 👈 ไม่ reverse ตรงนี้
       render();
     });
 }
@@ -116,13 +116,13 @@ function addItem(){
 
  let sendData=[];
 
- // 🔥 กรณีโต๊ด
+ // 🔥 ถ้ามีโต๊ด
  if(t){
 
    let p = perm(num);
 
-   // เลขซ้ำ → ลงบน
-   if(isDuplicate(num)){
+   // เลขซ้ำ → แตกเป็นหลายแถว (ลงบน)
+   if(new Set(num).size < 3){
 
      let base = Math.floor(t/p.length);
      let rem = t%p.length;
@@ -133,14 +133,15 @@ function addItem(){
      });
 
    }else{
-     // เลขไม่ซ้ำ → ลงโต๊ด
-     sendData.push({num:num,d:0,t:t,user:u});
+     // 🔥 เลขปกติ → แถวเดียว
+     sendData.push({num:num,d:d,t:t,user:u});
+     d = 0; // กันซ้ำ
    }
- }
 
- // บนตรง
- if(d){
-   sendData.push({num:num,d:d,t:0,user:u});
+ }else{
+   if(d){
+     sendData.push({num:num,d:d,t:0,user:u});
+   }
  }
 
  fetch(API_URL,{
@@ -150,19 +151,21 @@ function addItem(){
    loadData();
  });
 
+}
  numbers.value="";
  direct.value="";
  tod.value="";
 }
 
 // ลบรายการ
-function deleteItem(index){
-
- let item = data[index];
+function deleteItem(row){
 
  fetch(API_URL,{
    method:"POST",
-   body:JSON.stringify({delete:true, num:item.num, user:item.user})
+   body:JSON.stringify({
+     delete:true,
+     row: row
+   })
  }).then(()=>{
    loadData();
  });
@@ -173,31 +176,29 @@ function deleteItem(index){
 function render(){
 
  let tb=document.getElementById("table");
+
  tb.innerHTML = `
  <tr>
  <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th><th>ลบ</th>
  </tr>`;
 
- data.forEach((x,i)=>{
+ let showData = [...data].reverse(); // 👈 กลับตรงนี้
+
+ showData.forEach((x,i)=>{
 
   let r=tb.insertRow();
 
   r.insertCell(0).innerText=i+1;
-
-  // แสดง 0 นำหน้า
   r.insertCell(1).innerText = String(x.num).padStart(3,'0');
-
   r.insertCell(2).innerText = x.d ? x.d.toFixed(2) : "-";
   r.insertCell(3).innerText = x.t ? x.t.toFixed(2) : "-";
-
   r.insertCell(4).innerText = x.user;
 
   let del = r.insertCell(5);
-  del.innerHTML = "<span class='delete'>ลบ</span>";
-  del.onclick = ()=>deleteItem(i);
+  del.innerHTML = "❌";
+  del.onclick = ()=>deleteItem(x.row); // 👈 ใช้ row จริง
 
  });
-
 }
 
 </script>
