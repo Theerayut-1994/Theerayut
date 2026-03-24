@@ -42,8 +42,8 @@ input{
  margin:5px 0;
  border-radius:10px;
  border:1px solid #ccc;
+ font-size:16px;   /* ⭐ เพิ่มบรรทัดนี้ */
 }
-
 .row{
  display:flex;
  gap:10px;
@@ -246,22 +246,14 @@ function addItem(){
 }
 
 // ================= DELETE =================
-function deleteItem(row){
-
+function deleteItem(id){
  fetch(API_URL,{
    method:"POST",
    body: JSON.stringify({
      delete:true,
-     row: row
+     id: id
    })
- }).then(()=>{
-
-   // ลบเฉพาะตัวนั้น
-   data = data.filter(x => x.row != row);
-   render();
-
- });
-
+ }).then(()=>loadData());
 }
 
 // ================= RENDER =================
@@ -280,7 +272,7 @@ function render(){
 
   let r=tb.insertRow();
 
-  r.insertCell(0).innerText=i+1;
+  r.insertCell(0).innerText=show.length - i;
   r.insertCell(1).innerText=x.num;
   r.insertCell(2).innerText=x.d||"-";
   r.insertCell(3).innerText=x.t||"-";
@@ -290,7 +282,7 @@ function render(){
   del.innerHTML="<span class='delete'>❌</span>";
 
   del.querySelector("span").onclick=()=>{
-  deleteItem(x.row);
+  deleteItem(x.id);
 };
 
  });
