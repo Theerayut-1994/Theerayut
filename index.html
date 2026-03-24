@@ -246,17 +246,18 @@ function addItem(){
 }
 
 // ================= DELETE =================
-function deleteItem(id){
+function deleteItem(row){
 
  fetch(API_URL,{
    method:"POST",
    body: JSON.stringify({
      delete:true,
-     id:id
+     row: row
    })
  }).then(()=>{
 
-   data = data.filter(x => String(x.id) !== String(id));
+   // ลบเฉพาะตัวนั้น
+   data = data.filter(x => x.row != row);
    render();
 
  });
@@ -289,8 +290,8 @@ function render(){
   del.innerHTML="<span class='delete'>❌</span>";
 
   del.querySelector("span").onclick=()=>{
-    deleteItem(x.id);
-  };
+  deleteItem(x.row);
+};
 
  });
 
