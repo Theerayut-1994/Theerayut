@@ -8,10 +8,10 @@
 body { font-family: Arial; margin:10px; background:#f5f5f5; }
 input, button { width:100%; padding:12px; font-size:16px; margin:5px 0; }
 .row { display:flex; gap:5px; }
-.tag { background:#4CAF50; color:white; padding:8px 12px; border-radius:20px; margin:3px; display:inline-block; }
-.tag span { margin-left:8px; cursor:pointer; }
+label { font-weight:bold; }
 table { width:100%; border-collapse:collapse; margin-top:10px; background:white; }
 th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+.delete { color:red; cursor:pointer; }
 </style>
 </head>
 
@@ -19,84 +19,74 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 
 <h3>LOTTO PRO</h3>
 
-<input id="username" placeholder="ชื่อผู้คีย์">
+<label>ผู้บันทึกข้อมูล</label>
+<input id="username">
 
-<div id="tags"></div>
-<input id="numbers" inputmode="numeric" placeholder="พิมพ์เลข 3 ตัว">
+<label>หมายเลข 3 ตัว</label>
+<input id="numbers" inputmode="numeric" maxlength="3">
 
 <div class="row">
-<input id="direct" inputmode="numeric" placeholder="บน">
-<input id="tod" inputmode="numeric" placeholder="โต๊ด">
-<input id="rev" inputmode="numeric" placeholder="กลับ">
+<div style="flex:1">
+<label>บน</label>
+<input id="direct" inputmode="numeric">
+</div>
+<div style="flex:1">
+<label>โต๊ด</label>
+<input id="tod" inputmode="numeric">
+</div>
 </div>
 
 <button onclick="addItem()">เพิ่มรายการ</button>
-<button onclick="clearTags()">ล้างเลข</button>
 
 <h4>ประวัติ</h4>
 <table id="table">
-<tr><th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th></tr>
+<tr>
+<th>#</th>
+<th>เลข</th>
+<th>บน</th>
+<th>โต๊ด</th>
+<th>คนคีย์</th>
+<th>ลบ</th>
+</tr>
 </table>
 
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwUaaLen3MSflYE0x5bMVYdcaibezNY5vEvPd8hXkNIgD8jHNneJCpOWIsze3TZKrkNNw/exec";
 
-let tags=[];
 let data=[];
 
-// โหลดข้อมูลจาก Google Sheets
+// โหลดข้อมูล
 function loadData(){
   fetch(API_URL)
     .then(res => res.json())
     .then(res => {
-      data = res.reverse();
+      data = res.reverse(); // ใหม่ขึ้นก่อน
       render();
     });
 }
 
+// โหลด username (session)
 window.onload = function(){
   loadData();
-
-  let user = localStorage.getItem("user");
-  if(user){
-    document.getElementById("username").value = user;
-  }
-};
-
-username.onchange=function(){
- if(!this.value) return alert("กรอกชื่อ");
- localStorage.setItem("user",this.value);
+  let user = sessionStorage.getItem("user");
+  if(user) username.value = user;
 }
 
+// บันทึกชื่อ
+username.oninput = function(){
+  sessionStorage.setItem("user", this.value);
+}
+
+// บังคับเลข 3 หลัก
 numbers.addEventListener("input",function(){
- let v=this.value.replace(/\D/g,"");
- if(v.length===3){
-   addTag(v);
-   this.value="";
- }
+  this.value = this.value.replace(/\D/g,"");
+  if(this.value.length > 3){
+    this.value = this.value.slice(0,3);
+  }
 });
 
-function addTag(n){
- tags.push(n);
- let t=document.createElement("span");
- t.className="tag";
- t.innerHTML=n+" <span onclick='removeTag(this)'>❌</span>";
- document.getElementById("tags").appendChild(t);
-}
-
-function removeTag(el){
- let val=el.parentElement.innerText.replace(" ❌","");
- tags=tags.filter(x=>x!=val);
- el.parentElement.remove();
-}
-
-function clearTags(){
- tags=[];
- document.getElementById("tags").innerHTML="";
-}
-
-// 🔥 กลับเลข
+// permute
 function perm(s){
  if(s.length<=1) return [s];
  let r=[];
@@ -107,65 +97,107 @@ function perm(s){
  return [...new Set(r)];
 }
 
+// ตรวจเลขซ้ำ
+function isDuplicate(num){
+ return new Set(num).size < 3;
+}
+
+// เพิ่มรายการ
 function addItem(){
- let u=localStorage.getItem("user");
+
+ let u = username.value;
  if(!u) return alert("กรอกชื่อก่อน");
 
- let d=+direct.value||0;
- let t=+tod.value||0;
- let r=+rev.value||0;
+ let num = numbers.value;
+ if(num.length !== 3) return alert("ต้องเป็นเลข 3 หลัก");
+
+ let d = parseFloat(direct.value)||0;
+ let t = parseFloat(tod.value)||0;
 
  let sendData=[];
 
- tags.forEach(num=>{
+ // 🔥 กรณีโต๊ด
+ if(t){
 
-   // บน / โต๊ด
-   if(d||t){
-     sendData.push({num:num,d:d,t:t,user:u});
-   }
+   let p = perm(num);
 
-   // 🔥 เลขกลับ
-   if(r){
-     let p=perm(num);
-     let base=Math.floor(r/p.length);
-     let rem=r%p.length;
+   // เลขซ้ำ → ลงบน
+   if(isDuplicate(num)){
+
+     let base = Math.floor(t/p.length);
+     let rem = t%p.length;
 
      p.forEach((x,i)=>{
-       let amt=base+(i<rem?1:0);
+       let amt = base + (i<rem?1:0);
        sendData.push({num:x,d:amt,t:0,user:u});
      });
+
+   }else{
+     // เลขไม่ซ้ำ → ลงโต๊ด
+     sendData.push({num:num,d:0,t:t,user:u});
    }
+ }
 
- });
+ // บนตรง
+ if(d){
+   sendData.push({num:num,d:d,t:0,user:u});
+ }
 
- fetch(API_URL, {
-   method: "POST",
-   body: JSON.stringify(sendData)
+ fetch(API_URL,{
+   method:"POST",
+   body:JSON.stringify(sendData)
  }).then(()=>{
    loadData();
  });
 
- tags=[];
- document.getElementById("tags").innerHTML="";
+ numbers.value="";
  direct.value="";
  tod.value="";
- rev.value="";
- numbers.focus();
 }
 
-// แสดงข้อมูลเหมือน Google Sheet
+// ลบรายการ
+function deleteItem(index){
+
+ let item = data[index];
+
+ fetch(API_URL,{
+   method:"POST",
+   body:JSON.stringify({delete:true, num:item.num, user:item.user})
+ }).then(()=>{
+   loadData();
+ });
+
+}
+
+// render
 function render(){
+
  let tb=document.getElementById("table");
- tb.innerHTML="<tr><th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th></tr>";
+ tb.innerHTML = `
+ <tr>
+ <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th><th>ลบ</th>
+ </tr>`;
 
  data.forEach((x,i)=>{
+
   let r=tb.insertRow();
+
   r.insertCell(0).innerText=i+1;
-  r.insertCell(1).innerText=x.num;
-  r.insertCell(2).innerText=x.d||"-";
-  r.insertCell(3).innerText=x.t||"-";
-  r.insertCell(4).innerText=x.user;
+
+  // แสดง 0 นำหน้า
+  r.insertCell(1).innerText = String(x.num).padStart(3,'0');
+
+  r.insertCell(2).innerText = x.d ? x.d.toFixed(2) : "-";
+  r.insertCell(3).innerText = x.t ? x.t.toFixed(2) : "-";
+
+  r.insertCell(4).innerText = x.user;
+
+  let del = r.insertCell(5);
+  del.innerHTML = "<span class='delete'>ลบ</span>";
+  del.onclick = ()=>deleteItem(i);
+
  });
+
 }
 
 </script>
