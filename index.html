@@ -136,7 +136,7 @@ th{
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbws0bJfDwk7Mirjxx22MJ0VDfAVVTigfTmuPVj-mnooTyZPtBjqD_aLMmVr6vLaEFdR7w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwXZQTqTahn4bAajuOtfHlpT0J9wIqwjMO54U6hIP_r9KGJ-6Q9Za3GInvClkgRboEvUw/exec";
 
 let data=[];
 let tags=[];
@@ -208,12 +208,9 @@ function addItem(){
 
   let unique=new Set(num).size;
 
-  // 333
   if(unique===1){
     send.push({num:num,d:d+t,t:0,user:u});
   }
-
-  // 133
   else if(unique===2){
 
     let p=perm(num);
@@ -226,14 +223,26 @@ function addItem(){
 
     if(d) send.push({num:num,d:d,t:0,user:u});
   }
-
-  // 123
   else{
     send.push({num:num,d:d,t:t,user:u});
   }
 
  });
 
+ // 🔥 แสดงผลทันที (ไม่ต้องรอ API)
+ send.forEach(x=>{
+  data.push({
+    id: Date.now(), // id ชั่วคราว
+    num: x.num,
+    d: x.d,
+    t: x.t,
+    user: x.user
+  });
+ });
+
+ render();
+
+ // 🔥 ค่อยส่งไป server
  fetch(API_URL,{
   method:"POST",
   body: JSON.stringify(send)
@@ -247,13 +256,20 @@ function addItem(){
 
 // ================= DELETE =================
 function deleteItem(id){
+
+ // 🔥 ลบจากหน้าจอทันที
+ data = data.filter(x => x.id != id);
+ render();
+
+ // 🔥 ค่อยยิง API
  fetch(API_URL,{
    method:"POST",
    body: JSON.stringify({
      delete:true,
-     id: id
+     id:id
    })
- }).then(()=>loadData());
+ });
+
 }
 
 // ================= RENDER =================
@@ -266,27 +282,26 @@ function render(){
  <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คน</th><th>ลบ</th>
  </tr>`;
 
- let show=[...data].reverse();
+ // 🔥 เอาเฉพาะรายการที่ยังมีเลข
+ let show = data.filter(x => x.num).reverse();
 
- show.forEach((x,i)=>{
-
+show.forEach((x,i)=>{
   let r=tb.insertRow();
 
-  r.insertCell(0).innerText=show.length - i;
-  r.insertCell(1).innerText=x.num;
-  r.insertCell(2).innerText=x.d||"-";
-  r.insertCell(3).innerText=x.t||"-";
-  r.insertCell(4).innerText=x.user;
+  r.insertCell(0).innerText = x.id.toString().replace("temp_","");
+  r.insertCell(1).innerText = x.num;
+  r.insertCell(2).innerText = x.d || "-";
+  r.insertCell(3).innerText = x.t || "-";
+  r.insertCell(4).innerText = x.user;
 
   let del=r.insertCell(5);
   del.innerHTML="<span class='delete'>❌</span>";
 
   del.querySelector("span").onclick=()=>{
-  deleteItem(x.id);
-};
+    deleteItem(x.id);
+  };
 
  });
-
 }
 
 </script>
