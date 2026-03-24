@@ -2,84 +2,121 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>LOTTO PRO</title>
 
 <style>
-* {
- box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
  font-family: Arial;
- margin:0;              /* 👈 เอา margin ออก */
- padding:10px;         /* 👈 ใช้ padding แทน */
- background:#f5f5f5;
- box-sizing:border-box; /* 👈 กันล้น */
+ margin:0;
+ padding:10px;
+ background:#f2f4f7;
 }
 
-input, button {
+.container{
+ max-width:500px;
+ margin:auto;
+}
+
+.card{
+ background:white;
+ padding:15px;
+ border-radius:15px;
+ margin-bottom:15px;
+ box-shadow:0 4px 10px rgba(0,0,0,0.08);
+}
+
+h3{
+ text-align:center;
+}
+
+label{
+ font-weight:bold;
+}
+
+input{
  width:100%;
  padding:12px;
- font-size:16px;
  margin:5px 0;
+ border-radius:10px;
+ border:1px solid #ccc;
 }
 
-label{ font-weight:bold; }
-
-.row { display:flex; gap:20px; }
-
-.box {
- flex:1;
- padding:10px;
- background:white;
- border-radius:8px;
- box-shadow:0 0 5px rgba(0,0,0,0.1);
+.row{
+ display:flex;
+ gap:10px;
 }
 
+button{
+ width:100%;
+ padding:15px;
+ background:#4CAF50;
+ color:white;
+ border:none;
+ border-radius:10px;
+ font-size:16px;
+}
+
+/* TAG */
 .tag{
  background:#4CAF50;
  color:white;
- padding:6px 12px;
+ padding:8px 12px;
  border-radius:20px;
  margin:3px;
  display:inline-block;
  cursor:pointer;
 }
 
-table {
+/* TABLE */
+table{
  width:100%;
  border-collapse:collapse;
- margin-top:10px;
- background:white;
 }
 
-th, td {
- border:1px solid #ccc;
- padding:6px;
+th, td{
+ padding:8px;
+ border-bottom:1px solid #eee;
  text-align:center;
 }
 
-.delete{ color:red; cursor:pointer; }
+th{
+ background:#4CAF50;
+ color:white;
+}
+
+.delete{
+ font-size:20px;
+ cursor:pointer;
+ padding:5px 10px;
+ display:inline-block;
+}
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <h3>LOTTO PRO</h3>
+
+<div class="card">
 
 <label>ผู้บันทึกข้อมูล</label>
 <input id="username">
 
 <label>หมายเลข 3 ตัว</label>
-<input id="numbers">
+<input id="numbers" inputmode="numeric">
 <div id="tags"></div>
 
 <div class="row">
- <div class="box">
+ <div>
   <label>บน</label>
   <input id="direct">
  </div>
- <div class="box">
+ <div>
   <label>โต๊ด</label>
   <input id="tod">
  </div>
@@ -87,16 +124,24 @@ th, td {
 
 <button onclick="addItem()">เพิ่มรายการ</button>
 
+</div>
+
+<div class="card">
+
 <table id="table"></table>
+
+</div>
+
+</div>
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwUaaLen3MSflYE0x5bMVYdcaibezNY5vEvPd8hXkNIgD8jHNneJCpOWIsze3TZKrkNNw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbws0bJfDwk7Mirjxx22MJ0VDfAVVTigfTmuPVj-mnooTyZPtBjqD_aLMmVr6vLaEFdR7w/exec";
 
 let data=[];
 let tags=[];
 
-// โหลด
+// โหลดข้อมูล
 function loadData(){
  fetch(API_URL)
  .then(r=>r.json())
@@ -108,31 +153,36 @@ function loadData(){
 
 window.onload=loadData;
 
-// tag
-numbers.oninput=function(){
- let v=this.value.replace(/\D/g,"");
+// ================= TAG =================
+numbers.addEventListener("input",function(){
+
+ let v=this.value.replace(/\D/g,""); // เอาแต่ตัวเลข
+
  if(v.length===3){
    addTag(v);
    this.value="";
  }
-};
 
+});
+
+// เพิ่ม tag
 function addTag(n){
+
  tags.push(n);
 
  let t=document.createElement("span");
  t.className="tag";
- t.innerHTML=n+" ❌";
+ t.innerHTML=n + " ❌";
 
  t.onclick=()=>{
-   tags=tags.filter(x=>x!=n);
+   tags = tags.filter(x=>x!=n);
    t.remove();
  };
 
  document.getElementById("tags").appendChild(t);
 }
 
-// permute
+// ================= PERM =================
 function perm(s){
  if(s.length<=1) return [s];
  let r=[];
@@ -143,10 +193,12 @@ function perm(s){
  return [...new Set(r)];
 }
 
-// เพิ่ม
+// ================= ADD =================
 function addItem(){
 
  let u=username.value;
+ if(!u) return alert("กรอกชื่อก่อน");
+
  let d=parseFloat(direct.value)||0;
  let t=parseFloat(tod.value)||0;
 
@@ -163,6 +215,7 @@ function addItem(){
 
   // 133
   else if(unique===2){
+
     let p=perm(num);
     let base=Math.floor(t/p.length);
     let rem=t%p.length;
@@ -183,8 +236,7 @@ function addItem(){
 
  fetch(API_URL,{
   method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify(send)
+  body: JSON.stringify(send)
  }).then(()=>loadData());
 
  tags=[];
@@ -193,13 +245,25 @@ function addItem(){
  tod.value="";
 }
 
-// ลบ
-function deleteItem(row){
- fetch(API_URL+"?delete=1&row="+row)
- .then(()=>loadData());
+// ================= DELETE =================
+function deleteItem(id){
+
+ fetch(API_URL,{
+   method:"POST",
+   body: JSON.stringify({
+     delete:true,
+     id:id
+   })
+ }).then(()=>{
+
+   data = data.filter(x => String(x.id) !== String(id));
+   render();
+
+ });
+
 }
 
-// render
+// ================= RENDER =================
 function render(){
 
  let tb=document.getElementById("table");
@@ -222,8 +286,11 @@ function render(){
   r.insertCell(4).innerText=x.user;
 
   let del=r.insertCell(5);
-  del.innerHTML="❌";
-  del.onclick=()=>deleteItem(x.row);
+  del.innerHTML="<span class='delete'>❌</span>";
+
+  del.querySelector("span").onclick=()=>{
+    deleteItem(x.id);
+  };
 
  });
 
