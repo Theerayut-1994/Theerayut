@@ -6,12 +6,73 @@
 
 <style>
 body { font-family: Arial; margin:10px; background:#f5f5f5; }
-input, button { width:100%; padding:12px; font-size:16px; margin:5px 0; }
-.row { display:flex; gap:5px; }
-label { font-weight:bold; }
-table { width:100%; border-collapse:collapse; margin-top:10px; background:white; }
-th, td { border:1px solid #ccc; padding:6px; text-align:center; }
-.delete { color:red; cursor:pointer; }
+
+input, button {
+ width:100%;
+ padding:12px;
+ font-size:16px;
+ margin:5px 0;
+}
+
+label{
+ font-weight:bold;
+ margin-top:10px;
+ display:block;
+}
+
+/* ช่อง บน / โต๊ด */
+.row {
+ display:flex;
+ gap:20px; /* 👈 เพิ่มระยะห่าง */
+}
+
+.box {
+ flex:1;
+ padding:10px;
+ background:white;
+ border-radius:8px;
+ box-shadow:0 0 5px rgba(0,0,0,0.1);
+}
+
+.box input{
+ margin-top:5px;
+}
+
+.box label{
+ display:block;
+ margin-bottom:5px;
+}
+
+/* tag เลข */
+.tag{
+ background:#4CAF50;
+ color:white;
+ padding:6px 12px;
+ border-radius:20px;
+ margin:3px;
+ display:inline-block;
+ cursor:pointer;
+}
+
+/* ตาราง */
+table {
+ width:100%;
+ border-collapse:collapse;
+ margin-top:10px;
+ background:white;
+}
+
+th, td {
+ border:1px solid #ccc;
+ padding:6px;
+ text-align:center;
+}
+
+.delete{
+ color:red;
+ cursor:pointer;
+ font-weight:bold;
+}
 </style>
 </head>
 
@@ -24,16 +85,18 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 
 <label>หมายเลข 3 ตัว</label>
 <input id="numbers" inputmode="numeric" maxlength="3">
+<div id="tags"></div>
 
 <div class="row">
-<div style="flex:1">
-<label>บน</label>
-<input id="direct" inputmode="numeric">
-</div>
-<div style="flex:1">
-<label>โต๊ด</label>
-<input id="tod" inputmode="numeric">
-</div>
+  <div class="box">
+    <label>บน</label>
+    <input id="direct" inputmode="numeric">
+  </div>
+
+  <div class="box">
+    <label>โต๊ด</label>
+    <input id="tod" inputmode="numeric">
+  </div>
 </div>
 
 <button onclick="addItem()">เพิ่มรายการ</button>
@@ -41,12 +104,7 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 <h4>ประวัติ</h4>
 <table id="table">
 <tr>
-<th>#</th>
-<th>เลข</th>
-<th>บน</th>
-<th>โต๊ด</th>
-<th>คนคีย์</th>
-<th>ลบ</th>
+<th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th><th>ลบ</th>
 </tr>
 </table>
 
@@ -55,36 +113,54 @@ th, td { border:1px solid #ccc; padding:6px; text-align:center; }
 const API_URL = "https://script.google.com/macros/s/AKfycbwUaaLen3MSflYE0x5bMVYdcaibezNY5vEvPd8hXkNIgD8jHNneJCpOWIsze3TZKrkNNw/exec";
 
 let data=[];
+let tags=[];
 
 // โหลดข้อมูล
 function loadData(){
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(res => {
-      data = res; // 👈 ไม่ reverse ตรงนี้
-      render();
-    });
+ fetch(API_URL)
+ .then(res=>res.json())
+ .then(res=>{
+   data = res;
+   render();
+ });
 }
 
-// โหลด username (session)
-window.onload = function(){
-  loadData();
-  let user = sessionStorage.getItem("user");
-  if(user) username.value = user;
+// โหลดชื่อ (session)
+window.onload=function(){
+ loadData();
+ let u=sessionStorage.getItem("user");
+ if(u) username.value=u;
 }
 
-// บันทึกชื่อ
-username.oninput = function(){
-  sessionStorage.setItem("user", this.value);
+// จำชื่อ
+username.oninput=function(){
+ sessionStorage.setItem("user",this.value);
 }
 
-// บังคับเลข 3 หลัก
+// รับเลข 3 ตัว → สร้าง tag
 numbers.addEventListener("input",function(){
-  this.value = this.value.replace(/\D/g,"");
-  if(this.value.length > 3){
-    this.value = this.value.slice(0,3);
-  }
+ let v=this.value.replace(/\D/g,"");
+ if(v.length===3){
+   addTag(v);
+   this.value="";
+ }
 });
+
+// เพิ่ม tag
+function addTag(n){
+ tags.push(n);
+
+ let t=document.createElement("span");
+ t.className="tag";
+ t.innerHTML=n+" ❌";
+
+ t.onclick=function(){
+   tags = tags.filter(x=>x!=n);
+   t.remove();
+ }
+
+ document.getElementById("tags").appendChild(t);
+}
 
 // permute
 function perm(s){
@@ -97,78 +173,66 @@ function perm(s){
  return [...new Set(r)];
 }
 
-// ตรวจเลขซ้ำ
-function isDuplicate(num){
- return new Set(num).size < 3;
-}
-
-// เพิ่มรายการ
+// เพิ่มข้อมูล
 function addItem(){
 
- let u = username.value;
+ let u=username.value;
  if(!u) return alert("กรอกชื่อก่อน");
 
- let num = numbers.value;
- if(num.length !== 3) return alert("ต้องเป็นเลข 3 หลัก");
-
- let d = parseFloat(direct.value)||0;
- let t = parseFloat(tod.value)||0;
+ let d=parseFloat(direct.value)||0;
+ let t=parseFloat(tod.value)||0;
 
  let sendData=[];
 
- // 🔥 ถ้ามีโต๊ด
- if(t){
+ tags.forEach(num=>{
 
-   let p = perm(num);
+   let p=perm(num);
 
-   // เลขซ้ำ → แตกเป็นหลายแถว (ลงบน)
+   // เลขซ้ำ
    if(new Set(num).size < 3){
 
-     let base = Math.floor(t/p.length);
-     let rem = t%p.length;
+     let base=Math.floor(t/p.length);
+     let rem=t%p.length;
 
      p.forEach((x,i)=>{
-       let amt = base + (i<rem?1:0);
+       let amt=base+(i<rem?1:0);
        sendData.push({num:x,d:amt,t:0,user:u});
      });
 
    }else{
-     // 🔥 เลขปกติ → แถวเดียว
-     sendData.push({num:num,d:d,t:t,user:u});
-     d = 0; // กันซ้ำ
+     // เลขปกติ → แถวเดียว
+     sendData.push({
+       num:num,
+       d:d,
+       t:t,
+       user:u
+     });
    }
 
- }else{
-   if(d){
-     sendData.push({num:num,d:d,t:0,user:u});
-   }
- }
+ });
 
  fetch(API_URL,{
    method:"POST",
    body:JSON.stringify(sendData)
- }).then(()=>{
-   loadData();
- });
+ }).then(()=>loadData());
 
-}
- numbers.value="";
+ // reset
+ tags=[];
+ document.getElementById("tags").innerHTML="";
  direct.value="";
  tod.value="";
 }
 
-// ลบรายการ
+// ลบ
 function deleteItem(row){
 
  fetch(API_URL,{
    method:"POST",
    body:JSON.stringify({
      delete:true,
-     row: row
+     row:row
    })
- }).then(()=>{
-   loadData();
- });
+ }).then(()=>loadData());
 
 }
 
@@ -177,28 +241,29 @@ function render(){
 
  let tb=document.getElementById("table");
 
- tb.innerHTML = `
+ tb.innerHTML=`
  <tr>
  <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คนคีย์</th><th>ลบ</th>
  </tr>`;
 
- let showData = [...data].reverse(); // 👈 กลับตรงนี้
+ let show=[...data].reverse();
 
- showData.forEach((x,i)=>{
+ show.forEach((x,i)=>{
 
   let r=tb.insertRow();
 
   r.insertCell(0).innerText=i+1;
-  r.insertCell(1).innerText = String(x.num).padStart(3,'0');
-  r.insertCell(2).innerText = x.d ? x.d.toFixed(2) : "-";
-  r.insertCell(3).innerText = x.t ? x.t.toFixed(2) : "-";
-  r.insertCell(4).innerText = x.user;
+  r.insertCell(1).innerText=x.num;
+  r.insertCell(2).innerText=x.d ? x.d.toFixed(2) : "-";
+  r.insertCell(3).innerText=x.t ? x.t.toFixed(2) : "-";
+  r.insertCell(4).innerText=x.user;
 
-  let del = r.insertCell(5);
-  del.innerHTML = "❌";
-  del.onclick = ()=>deleteItem(x.row); // 👈 ใช้ row จริง
+  let del=r.insertCell(5);
+  del.innerHTML="<span class='delete'>ลบ</span>";
+  del.onclick=()=>deleteItem(x.row);
 
  });
+
 }
 
 </script>
