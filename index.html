@@ -186,35 +186,64 @@ function addItem(){
 
  tags.forEach(num=>{
 
-   let p=perm(num);
+ let unique = new Set(num).size;
 
-   // เลขซ้ำ
-   if(new Set(num).size < 3){
+ // 🔥 กรณี 333 (ซ้ำ 3 ตัว)
+ if(unique === 1){
 
-     let base=Math.floor(t/p.length);
-     let rem=t%p.length;
+   sendData.push({
+     num:num,
+     d:(d + t), // 👈 รวม บน + โต๊ด
+     t:0,
+     user:u
+   });
 
-     p.forEach((x,i)=>{
-       let amt=base+(i<rem?1:0);
-       sendData.push({num:x,d:amt,t:0,user:u});
-     });
+ }
 
-   }else{
-     // เลขปกติ → แถวเดียว
-     sendData.push({
-       num:num,
-       d:d,
-       t:t,
-       user:u
-     });
+ // 🔥 กรณี 133 (ซ้ำบางตัว)
+ else if(unique === 2){
+
+   let p = perm(num);
+
+   let base=Math.floor(t/p.length);
+   let rem=t%p.length;
+
+   p.forEach((x,i)=>{
+     let amt=base+(i<rem?1:0);
+     sendData.push({num:x,d:amt,t:0,user:u});
+   });
+
+   // บนตรง
+   if(d){
+     sendData.push({num:num,d:d,t:0,user:u});
    }
 
- });
+ }
+
+ // 🔥 กรณี 123 (ไม่ซ้ำ)
+ else{
+
+   sendData.push({
+     num:num,
+     d:d,
+     t:t,
+     user:u
+   });
+
+ }
+
+});
 
  fetch(API_URL,{
-   method:"POST",
-   body:JSON.stringify(sendData)
- }).then(()=>loadData());
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json" // 👈 เพิ่มบรรทัดนี้
+  },
+  body:JSON.stringify({
+    delete:true,
+    row:Number(row)
+  })
+})
 
  // reset
  tags=[];
@@ -230,7 +259,7 @@ function deleteItem(row){
    method:"POST",
    body:JSON.stringify({
      delete:true,
-     row:row
+     row: Number(row) // 👈 สำคัญมาก
    })
  }).then(()=>loadData());
 
