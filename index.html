@@ -114,18 +114,53 @@ function perm(s){
  return [...new Set(r)];
 }
 
-// ================= ADD =================
-fetch(API_URL,{
+function addItem(){
+
+ let u=username.value;
+ if(!u) return alert("กรอกชื่อก่อน");
+
+ let d=parseFloat(direct.value)||0;
+ let t=parseFloat(tod.value)||0;
+
+ let send=[];
+
+ tags.forEach(num=>{
+
+  let unique=new Set(num).size;
+
+  if(unique===1){
+    send.push({num:num,d:d+t,t:0,user:u});
+  }
+  else if(unique===2){
+
+    let p=perm(num);
+    let base=Math.floor(t/p.length);
+    let rem=t%p.length;
+
+    p.forEach((x,i)=>{
+      send.push({num:x,d:base+(i<rem?1:0),t:0,user:u});
+    });
+
+    if(d) send.push({num:num,d:d,t:0,user:u});
+  }
+  else{
+    send.push({num:num,d:d,t:t,user:u});
+  }
+
+ });
+
+ // 🔥 ส่งไป Google แล้วรับ ID กลับ
+ fetch(API_URL,{
   method:"POST",
   headers:{
     "Content-Type":"application/json"
   },
   body: JSON.stringify(send)
-})
-.then(res => res.json())
-.then(ids => {
+ })
+ .then(res => res.json())
+ .then(ids => {
 
-  send.forEach((x,i)=>{
+   send.forEach((x,i)=>{
     data.push({
       id: ids[i],
       num: x.num,
@@ -133,19 +168,9 @@ fetch(API_URL,{
       t: x.t,
       user: x.user
     });
-  });
+   });
 
-  render();
-});
-
- // 🔥 ส่งไป Google (เบื้องหลัง)
- fetch(API_URL,{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify(send),
-  mode:"no-cors"
+   render();
  });
 
  tags=[];
