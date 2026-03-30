@@ -115,53 +115,29 @@ function perm(s){
 }
 
 // ================= ADD =================
-function addItem(){
+fetch(API_URL,{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json"
+  },
+  body: JSON.stringify(send)
+})
+.then(res => res.json())
+.then(ids => {
 
- let u=username.value;
- if(!u) return alert("กรอกชื่อก่อน");
-
- let d=parseFloat(direct.value)||0;
- let t=parseFloat(tod.value)||0;
-
- let send=[];
-
- tags.forEach(num=>{
-
-  let unique=new Set(num).size;
-
-  if(unique===1){
-    send.push({num:num,d:d+t,t:0,user:u});
-  }
-  else if(unique===2){
-
-    let p=perm(num);
-    let base=Math.floor(t/p.length);
-    let rem=t%p.length;
-
-    p.forEach((x,i)=>{
-      send.push({num:x,d:base+(i<rem?1:0),t:0,user:u});
+  // 🔥 ใช้ ID จริงจาก Google
+  send.forEach((x,i)=>{
+    data.push({
+      id: ids[i],   // ใช้ ID จาก Sheet
+      num: x.num,
+      d: x.d,
+      t: x.t,
+      user: x.user
     });
-
-    if(d) send.push({num:num,d:d,t:0,user:u});
-  }
-  else{
-    send.push({num:num,d:d,t:t,user:u});
-  }
-
- });
-
- // 🔥 แสดงทันที (ไม่รอ Google)
- send.forEach(x=>{
-  data.push({
-    id: Date.now()+Math.random(),
-    num: x.num,
-    d: x.d,
-    t: x.t,
-    user: x.user
   });
- });
 
- render();
+  render();
+
 
  // 🔥 ส่งไป Google (เบื้องหลัง)
  fetch(API_URL,{
@@ -182,12 +158,6 @@ function addItem(){
 // ================= DELETE =================
 function deleteItem(id){
 
- // 🔥 กันลบของที่ยังไม่ sync
- if(String(id).startsWith("temp_")){
-   alert("รอสักครู่...");
-   return;
- }
-
  data = data.filter(x => x.id != id);
  render();
 
@@ -201,8 +171,7 @@ function deleteItem(id){
      id:id
    })
  });
-}
-// ================= RENDER =================
+}// ================= RENDER =================
 function render(){
 
  let tb=document.getElementById("table");
