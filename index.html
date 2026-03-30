@@ -182,11 +182,15 @@ function addItem(){
 // ================= DELETE =================
 function deleteItem(id){
 
- // 🔥 ลบจากหน้าจอทันที
+ // 🔥 กันลบของที่ยังไม่ sync
+ if(String(id).startsWith("temp_")){
+   alert("รอสักครู่...");
+   return;
+ }
+
  data = data.filter(x => x.id != id);
  render();
 
- // 🔥 ลบใน Google
  fetch(API_URL,{
    method:"POST",
    headers:{
@@ -195,12 +199,9 @@ function deleteItem(id){
    body: JSON.stringify({
      delete:true,
      id:id
-   }),
-   mode:"no-cors"
+   })
  });
-
 }
-
 // ================= RENDER =================
 function render(){
 
