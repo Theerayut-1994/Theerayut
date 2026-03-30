@@ -1,99 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>LOTTO PRO</title>
 
 <style>
-* { box-sizing: border-box; }
+*{box-sizing:border-box;}
+body{font-family:Arial;margin:0;padding:10px;background:#f2f4f7;}
+.container{max-width:500px;margin:auto;}
+.card{background:white;padding:15px;border-radius:15px;margin-bottom:15px;box-shadow:0 4px 10px rgba(0,0,0,0.08);}
+h3{text-align:center;}
+label{font-weight:bold;}
+input{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:1px solid #ccc;font-size:16px;}
+.row{display:flex;gap:10px;}
+button{width:100%;padding:15px;background:#4CAF50;color:white;border:none;border-radius:10px;font-size:16px;}
 
-body {
- font-family: Arial;
- margin:0;
- padding:10px;
- background:#f2f4f7;
-}
+.tag{background:#4CAF50;color:white;padding:8px 12px;border-radius:20px;margin:3px;display:inline-block;cursor:pointer;}
 
-.container{
- max-width:500px;
- margin:auto;
-}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:8px;border-bottom:1px solid #eee;text-align:center;}
+th{background:#4CAF50;color:white;}
 
-.card{
- background:white;
- padding:15px;
- border-radius:15px;
- margin-bottom:15px;
- box-shadow:0 4px 10px rgba(0,0,0,0.08);
-}
-
-h3{
- text-align:center;
-}
-
-label{
- font-weight:bold;
-}
-
-input{
- width:100%;
- padding:12px;
- margin:5px 0;
- border-radius:10px;
- border:1px solid #ccc;
- font-size:16px;   /* ⭐ เพิ่มบรรทัดนี้ */
-}
-.row{
- display:flex;
- gap:10px;
-}
-
-button{
- width:100%;
- padding:15px;
- background:#4CAF50;
- color:white;
- border:none;
- border-radius:10px;
- font-size:16px;
-}
-
-/* TAG */
-.tag{
- background:#4CAF50;
- color:white;
- padding:8px 12px;
- border-radius:20px;
- margin:3px;
- display:inline-block;
- cursor:pointer;
-}
-
-/* TABLE */
-table{
- width:100%;
- border-collapse:collapse;
-}
-
-th, td{
- padding:8px;
- border-bottom:1px solid #eee;
- text-align:center;
-}
-
-th{
- background:#4CAF50;
- color:white;
-}
-
-.delete{
- font-size:20px;
- cursor:pointer;
- padding:5px 10px;
- display:inline-block;
-}
+.delete{font-size:20px;cursor:pointer;}
 </style>
 </head>
 
@@ -128,21 +56,19 @@ th{
 </div>
 
 <div class="card">
-
 <table id="table"></table>
-
 </div>
 
 </div>
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyzd2Tl5Kpt6aJmID9Qv9jaXoMY86-PU8Yps_HiXNaitXogdLh9PL_cHIdVVwU-cUrQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbz1cfPY9TdrXrUDBdMvzqWskbT1VJOpu7_JcU27uhhUf03wDWYBaOAYT-rzmILavMW6Mg/exec";
 
 let data=[];
 let tags=[];
 
-// โหลดข้อมูล
+// ================= LOAD =================
 function loadData(){
  fetch(API_URL)
  .then(r=>r.json())
@@ -151,29 +77,23 @@ function loadData(){
    render();
  });
 }
-
 window.onload=loadData;
 
 // ================= TAG =================
 numbers.addEventListener("input",function(){
-
- let v=this.value.replace(/\D/g,""); // เอาแต่ตัวเลข
-
+ let v=this.value.replace(/\D/g,"");
  if(v.length===3){
    addTag(v);
    this.value="";
  }
-
 });
 
-// เพิ่ม tag
 function addTag(n){
-
  tags.push(n);
 
  let t=document.createElement("span");
  t.className="tag";
- t.innerHTML=n + " ❌";
+ t.innerHTML=n+" ❌";
 
  t.onclick=()=>{
    tags = tags.filter(x=>x!=n);
@@ -230,29 +150,15 @@ function addItem(){
 
  });
 
- // 🔥 แสดงผลทันที (ไม่ต้องรอ API)
- send.forEach(x=>{
-  data.push({
-    id: Date.now(), // id ชั่วคราว
-    num: x.num,
-    d: x.d,
-    t: x.t,
-    user: x.user
-  });
- });
-
- render();
-
- // 🔥 ค่อยส่งไป server
  fetch(API_URL,{
   method:"POST",
   headers:{
     "Content-Type":"application/json"
   },
-  body: JSON.stringify(send)
-})
-.then(res => res.text())
-.then(() => loadData());
+  body: JSON.stringify(send),
+  mode:"no-cors"
+ })
+ .then(()=>loadData());
 
  tags=[];
  document.getElementById("tags").innerHTML="";
@@ -263,23 +169,18 @@ function addItem(){
 // ================= DELETE =================
 function deleteItem(id){
 
- // 🔥 ลบจากหน้าจอทันที
- data = data.filter(x => x.id != id);
- render();
-
- // 🔥 ค่อยยิง API
  fetch(API_URL,{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify({
-    delete:true,
-    id:id
-  })
-})
-.then(res => res.text())
-.then(() => loadData());
+   method:"POST",
+   headers:{
+     "Content-Type":"application/json"
+   },
+   body: JSON.stringify({
+     delete:true,
+     id:id
+   }),
+   mode:"no-cors"
+ })
+ .then(()=>loadData());
 
 }
 
@@ -293,14 +194,13 @@ function render(){
  <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คน</th><th>ลบ</th>
  </tr>`;
 
- // 🔥 เอาเฉพาะรายการที่ยังมีเลข
- let show = data.filter(x => x.num).reverse();
+ let show = data.slice().reverse();
 
  show.forEach((x,i)=>{
 
   let r=tb.insertRow();
 
-  r.insertCell(0).innerText = show.length - i; // ✅ เลขย้อน
+  r.insertCell(0).innerText = show.length - i;
   r.insertCell(1).innerText = x.num;
   r.insertCell(2).innerText = x.d || "-";
   r.insertCell(3).innerText = x.t || "-";
@@ -308,13 +208,12 @@ function render(){
 
   let del=r.insertCell(5);
   del.innerHTML="<span class='delete'>❌</span>";
-
-  del.querySelector("span").onclick=()=>{
-    deleteItem(x.id);
-  };
+  del.onclick=()=> deleteItem(x.id);
 
  });
+
 }
+
 </script>
 
 </body>
