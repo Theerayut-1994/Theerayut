@@ -67,17 +67,20 @@ const API_URL = "https://script.google.com/macros/s/AKfycbz1cfPY9TdrXrUDBdMvzqWs
 
 let data=[];
 let tags=[];
+let deletedIds = new Set();
 
 // ================= LOAD =================
 function loadData(){
  fetch(API_URL)
  .then(r=>r.json())
  .then(r=>{
-   data=r;
+
+   // 🔥 กรองตัวที่เราลบไปแล้วออก
+   data = r.filter(x => !deletedIds.has(x.id));
+
    render();
  });
-}
-window.onload=loadData;
+}window.onload=loadData;
 
 // ================= TAG =================
 numbers.addEventListener("input",function(){
@@ -184,11 +187,14 @@ function addItem(){
 // ================= DELETE =================
 function deleteItem(id){
 
- // 🔥 1. ลบจากหน้าจอทันที
+ // 🔥 จำว่าอันนี้ลบแล้ว
+ deletedIds.add(id);
+
+ // 🔥 ลบจากหน้าจอทันที
  data = data.filter(x => x.id != id);
  render();
 
- // 🔥 2. ค่อยยิง API
+ // 🔥 ยิง API
  fetch(API_URL,{
    method:"POST",
    headers:{
@@ -201,9 +207,15 @@ function deleteItem(id){
    mode:"no-cors"
  });
 
- // 🔥 3. รีโหลดข้อมูลจริง
- setTimeout(loadData,1000);
+ // 🔥 sync จริง
+ setTimeout(loadData,1500);
+
+ // 🔥 เคลียร์ cache หลัง 5 วิ
+ setTimeout(()=>{
+   deletedIds.clear();
+ },5000);
 }
+
 // ================= RENDER =================
 function render(){
 
