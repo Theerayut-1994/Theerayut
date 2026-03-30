@@ -125,10 +125,9 @@ fetch(API_URL,{
 .then(res => res.json())
 .then(ids => {
 
-  // 🔥 ใช้ ID จริงจาก Google
   send.forEach((x,i)=>{
     data.push({
-      id: ids[i],   // ใช้ ID จาก Sheet
+      id: ids[i],
       num: x.num,
       d: x.d,
       t: x.t,
@@ -137,7 +136,7 @@ fetch(API_URL,{
   });
 
   render();
-
+});
 
  // 🔥 ส่งไป Google (เบื้องหลัง)
  fetch(API_URL,{
