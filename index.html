@@ -67,44 +67,18 @@ const API_URL = "https://script.google.com/macros/s/AKfycbz1cfPY9TdrXrUDBdMvzqWs
 
 let data=[];
 let tags=[];
-let deletedIds = new Set();
 
 // ================= LOAD =================
 function loadData(){
  fetch(API_URL)
  .then(r=>r.json())
  .then(r=>{
-
-   // 🔥 เอาของในเว็บไว้ก่อน
-   let current = data;
-
-   // 🔥 กรองตัวที่ลบออก
-   let fromSheet = r.filter(x => !deletedIds.has(x.id));
-
-   // 🔥 รวมข้อมูล (กันหาย)
-   let merged = [...current];
-
-// 🔥 เอาเฉพาะตัวที่ไม่ pending
-let current = data.filter(x => !x.pending);
-
-   fromSheet.forEach(x=>{
-     // ถ้ายังไม่มีใน data ค่อยเพิ่ม
-     if(!merged.find(y => y.id == x.id)){
-       merged.push(x);
-     }
-   });
-
-   data = merged;
-
+   data=r;
    render();
  });
 }
+window.onload = loadData;
 
-window.onload = () => {
-  loadData();
-
-
-};
 // ================= TAG =================
 numbers.addEventListener("input",function(){
  let v=this.value.replace(/\D/g,"");
@@ -176,20 +150,20 @@ function addItem(){
 
  });
 
- // 🔥 1. แสดงผลทันที
+ // 🔥 แสดงทันที (ไม่รอ Google)
  send.forEach(x=>{
   data.push({
-  id: Date.now()+Math.random(),
-  num: x.num,
-  d: x.d,
-  t: x.t,
-  user: x.user,
-  pending: true // 🔥 เพิ่ม
-});
+    id: Date.now()+Math.random(),
+    num: x.num,
+    d: x.d,
+    t: x.t,
+    user: x.user
+  });
+ });
 
  render();
 
- // 🔥 2. ค่อยส่งไป Google
+ // 🔥 ส่งไป Google (เบื้องหลัง)
  fetch(API_URL,{
   method:"POST",
   headers:{
@@ -199,25 +173,20 @@ function addItem(){
   mode:"no-cors"
  });
 
- // 🔥 3. รีโหลดข้อมูลจริงทีหลัง (กัน id เพี้ยน)
- setTimeout(loadData,1000);
-
  tags=[];
  document.getElementById("tags").innerHTML="";
  direct.value="";
  tod.value="";
 }
+
 // ================= DELETE =================
 function deleteItem(id){
-
- // 🔥 จำว่าอันนี้ลบแล้ว
- deletedIds.add(id);
 
  // 🔥 ลบจากหน้าจอทันที
  data = data.filter(x => x.id != id);
  render();
 
- // 🔥 ยิง API
+ // 🔥 ลบใน Google
  fetch(API_URL,{
    method:"POST",
    headers:{
@@ -230,14 +199,9 @@ function deleteItem(id){
    mode:"no-cors"
  });
 
- // 🔥 sync จริง
- setTimeout(loadData,1500);
+}
 
- // 🔥 เคลียร์ cache หลัง 5 วิ
- setTimeout(()=>{
-   deletedIds.clear();
- },5000);
-}// ================= RENDER =================
+// ================= RENDER =================
 function render(){
 
  let tb=document.getElementById("table");
