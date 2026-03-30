@@ -150,6 +150,20 @@ function addItem(){
 
  });
 
+ // 🔥 1. แสดงผลทันที
+ send.forEach(x=>{
+  data.push({
+    id: Date.now()+Math.random(),
+    num: x.num,
+    d: x.d,
+    t: x.t,
+    user: x.user
+  });
+ });
+
+ render();
+
+ // 🔥 2. ค่อยส่งไป Google
  fetch(API_URL,{
   method:"POST",
   headers:{
@@ -157,18 +171,24 @@ function addItem(){
   },
   body: JSON.stringify(send),
   mode:"no-cors"
- })
- .then(()=>loadData());
+ });
+
+ // 🔥 3. รีโหลดข้อมูลจริงทีหลัง (กัน id เพี้ยน)
+ setTimeout(loadData,1000);
 
  tags=[];
  document.getElementById("tags").innerHTML="";
  direct.value="";
  tod.value="";
 }
-
 // ================= DELETE =================
 function deleteItem(id){
 
+ // 🔥 1. ลบจากหน้าจอทันที
+ data = data.filter(x => x.id != id);
+ render();
+
+ // 🔥 2. ค่อยยิง API
  fetch(API_URL,{
    method:"POST",
    headers:{
@@ -179,11 +199,11 @@ function deleteItem(id){
      id:id
    }),
    mode:"no-cors"
- })
- .then(()=>loadData());
+ });
 
+ // 🔥 3. รีโหลดข้อมูลจริง
+ setTimeout(loadData,1000);
 }
-
 // ================= RENDER =================
 function render(){
 
