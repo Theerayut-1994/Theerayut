@@ -103,8 +103,7 @@ let current = data.filter(x => !x.pending);
 window.onload = () => {
   loadData();
 
-  // 🔥 โหลดซ้ำทุก 5 วิ (sync กับ Google)
-  setInterval(loadData,5000);
+
 };
 // ================= TAG =================
 numbers.addEventListener("input",function(){
