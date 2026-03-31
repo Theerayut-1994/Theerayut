@@ -165,11 +165,13 @@ async function addItem(){
  render();
 
  try{
-   await fetch(API_URL,{
-     method:"POST",
-     body: JSON.stringify(send)
-   });
- }catch(e){
+await fetch(API_URL,{
+  method:"POST",
+  headers:{
+    "Content-Type":"text/plain;charset=utf-8"
+  },
+  body: JSON.stringify(send)
+}); }catch(e){
    alert("บันทึกไม่สำเร็จ");
  }
 
