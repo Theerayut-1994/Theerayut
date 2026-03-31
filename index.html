@@ -14,14 +14,10 @@ label{font-weight:bold;}
 input{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:1px solid #ccc;font-size:16px;}
 .row{display:flex;gap:10px;}
 button{width:100%;padding:15px;background:#4CAF50;color:white;border:none;border-radius:10px;font-size:16px;}
-
 .tag{background:#4CAF50;color:white;padding:8px 12px;border-radius:20px;margin:3px;display:inline-block;cursor:pointer;}
-
 table{width:100%;border-collapse:collapse;}
 th,td{padding:8px;border-bottom:1px solid #eee;text-align:center;}
 th{background:#4CAF50;color:white;}
-
-.delete{font-size:20px;cursor:pointer;}
 </style>
 </head>
 
@@ -68,7 +64,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbz1cfPY9TdrXrUDBdMvzqWs
 let data=[];
 let tags=[];
 
-// ================= LOAD =================
+// ===== LOAD =====
 function loadData(){
  fetch(API_URL)
  .then(r=>r.json())
@@ -79,7 +75,7 @@ function loadData(){
 }
 window.onload = loadData;
 
-// ================= TAG =================
+// ===== TAG =====
 numbers.addEventListener("input",function(){
  let v=this.value.replace(/\D/g,"");
  if(v.length===3){
@@ -103,7 +99,7 @@ function addTag(n){
  document.getElementById("tags").appendChild(t);
 }
 
-// ================= PERM =================
+// ===== PERM (3 กลับ) =====
 function perm(s){
  if(s.length<=1) return [s];
  let r=[];
@@ -114,7 +110,8 @@ function perm(s){
  return [...new Set(r)];
 }
 
-function addItem(){
+// ===== ADD =====
+async function addItem(){
 
  let u=username.value;
  if(!u) return alert("กรอกชื่อก่อน");
@@ -122,15 +119,20 @@ function addItem(){
  let d=parseFloat(direct.value)||0;
  let t=parseFloat(tod.value)||0;
 
+ if(tags.length===0) return alert("ใส่เลข");
+
  let send=[];
 
  tags.forEach(num=>{
 
   let unique=new Set(num).size;
 
+  // 🔥 111
   if(unique===1){
     send.push({num:num,d:d+t,t:0,user:u});
   }
+
+  // 🔥 112 (2 กลับ)
   else if(unique===2){
 
     let p=perm(num);
@@ -138,89 +140,65 @@ function addItem(){
     let rem=t%p.length;
 
     p.forEach((x,i)=>{
-      send.push({num:x,d:base+(i<rem?1:0),t:0,user:u});
+      send.push({
+        num:x,
+        d:base+(i<rem?1:0),
+        t:0,
+        user:u
+      });
     });
 
-    if(d) send.push({num:num,d:d,t:0,user:u});
+    if(d){
+      send.push({num:num,d:d,t:0,user:u});
+    }
   }
+
+  // 🔥 123 (3 กลับ)
   else{
     send.push({num:num,d:d,t:t,user:u});
   }
 
  });
 
- // 🔥 ส่งไป Google แล้วรับ ID กลับ
- fetch(API_URL,{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify(send)
- })
- .then(res => res.json())
- .then(ids => {
+ // แสดงในเว็บ
+ send.forEach(x=> data.push(x));
+ render();
 
-   send.forEach((x,i)=>{
-    data.push({
-      id: ids[i],
-      num: x.num,
-      d: x.d,
-      t: x.t,
-      user: x.user
-    });
+ try{
+   await fetch(API_URL,{
+     method:"POST",
+     body: JSON.stringify(send)
    });
+ }catch(e){
+   alert("บันทึกไม่สำเร็จ");
+ }
 
-   render();
- });
-
+ // reset
  tags=[];
  document.getElementById("tags").innerHTML="";
  direct.value="";
  tod.value="";
 }
 
-// ================= DELETE =================
-function deleteItem(id){
-
- data = data.filter(x => x.id != id);
- render();
-
- fetch(API_URL,{
-   method:"POST",
-   headers:{
-     "Content-Type":"application/json"
-   },
-   body: JSON.stringify({
-     delete:true,
-     id:id
-   })
- });
-}// ================= RENDER =================
+// ===== RENDER =====
 function render(){
 
  let tb=document.getElementById("table");
 
  tb.innerHTML=`
  <tr>
- <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คน</th><th>ลบ</th>
+ <th>#</th><th>เลข</th><th>บน</th><th>โต๊ด</th><th>คน</th>
  </tr>`;
 
  let show = data.slice().reverse();
 
  show.forEach((x,i)=>{
-
   let r=tb.insertRow();
-
   r.insertCell(0).innerText = show.length - i;
   r.insertCell(1).innerText = x.num;
   r.insertCell(2).innerText = x.d || "-";
   r.insertCell(3).innerText = x.t || "-";
   r.insertCell(4).innerText = x.user;
-
-  let del=r.insertCell(5);
-  del.innerHTML="<span class='delete'>❌</span>";
-  del.onclick=()=> deleteItem(x.id);
-
  });
 
 }
